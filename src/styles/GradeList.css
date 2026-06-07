@@ -1,0 +1,327 @@
+.stream-page{
+  position:fixed;
+  inset:0;
+
+  background:
+  radial-gradient(
+    circle at top,
+    #091428 0%,
+    #06111f 40%,
+    #020617 100%
+  );
+
+  color:white;
+  padding:18px 24px;
+
+  display:flex;
+  flex-direction:column;
+
+  overflow:hidden;
+
+  font-family:
+    "Inter",
+    system-ui,
+    sans-serif;
+}
+
+/* Background glow */
+
+.stream-glow{
+  position:absolute;
+  border-radius:50%;
+  filter:blur(140px);
+  opacity:.12;
+  pointer-events:none;
+}
+
+.glow-left{
+  width:350px;
+  height:350px;
+  background:#8b5cf6;
+  left:-150px;
+  top:-100px;
+}
+
+.glow-right{
+  width:400px;
+  height:400px;
+  background:#3b82f6;
+  right:-180px;
+  bottom:-150px;
+}
+
+/* Header */
+
+.header{
+  text-align:center;
+  margin-bottom:12px;
+  z-index:2;
+}
+
+.header h1{
+  margin:0;
+
+  font-size:56px;
+  font-weight:900;
+
+  letter-spacing:-2px;
+  line-height:1;
+}
+
+.header p{
+  margin-top:18px;
+  margin-bottom:18px;
+
+  font-size:15px;
+  font-weight:700;
+
+  opacity:.65;
+}
+
+/* Grid */
+
+.stream-grid{
+  flex:1;
+
+  display:grid;
+
+  gap:18px;
+
+  grid-template-columns:
+    1.35fr
+    1fr
+    1fr;
+
+  grid-template-rows:
+    160px
+    160px
+    160px;
+}
+
+/* Cards */
+
+.stream-card{
+  position:relative;
+
+  display:flex;
+  flex-direction:column;
+  justify-content:space-between;
+
+  padding:18px;
+
+  overflow:hidden;
+
+  cursor:pointer;
+
+  border-radius:24px;
+
+  backdrop-filter:blur(18px);
+
+  border:
+    1px solid rgba(255,255,255,.08);
+
+  transition:.25s ease;
+
+  box-shadow:
+    0 15px 35px rgba(0,0,0,.25);
+}
+
+.stream-card:hover{
+  transform:
+    translateY(-6px)
+    scale(1.015);
+
+  box-shadow:
+    0 25px 55px rgba(0,0,0,.35);
+}
+
+/* Card Colors */
+
+.education{
+  grid-row:span 2;
+
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(139,92,246,.30),
+      transparent 60%
+    ),
+    rgba(255,255,255,.05);
+
+  box-shadow:
+    0 0 30px rgba(139,92,246,.15),
+    0 15px 35px rgba(0,0,0,.25);
+}
+
+.aptitude{
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(6,182,212,.30),
+      transparent 60%
+    ),
+    rgba(255,255,255,.05);
+
+  box-shadow:
+    0 0 30px rgba(6,182,212,.15),
+    0 15px 35px rgba(0,0,0,.25);
+}
+
+.science{
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(16,185,129,.30),
+      transparent 60%
+    ),
+    rgba(255,255,255,.05);
+
+  box-shadow:
+    0 0 30px rgba(16,185,129,.15),
+    0 15px 35px rgba(0,0,0,.25);
+}
+
+.general-knowledge{
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(245,158,11,.30),
+      transparent 60%
+    ),
+    rgba(255,255,255,.05);
+
+  box-shadow:
+    0 0 30px rgba(245,158,11,.15),
+    0 15px 35px rgba(0,0,0,.25);
+}
+
+.current-affairs{
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(239,68,68,.30),
+      transparent 60%
+    ),
+    rgba(255,255,255,.05);
+
+  box-shadow:
+    0 0 30px rgba(239,68,68,.15),
+    0 15px 35px rgba(0,0,0,.25);
+}
+
+.sports{
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(59,130,246,.30),
+      transparent 60%
+    ),
+    rgba(255,255,255,.05);
+
+  box-shadow:
+    0 0 30px rgba(59,130,246,.15),
+    0 15px 35px rgba(0,0,0,.25);
+}
+
+.cinema{
+  grid-column:span 2;
+
+  background:
+    radial-gradient(
+      circle at top left,
+      rgba(236,72,153,.30),
+      transparent 60%
+    ),
+    rgba(255,255,255,.05);
+
+  box-shadow:
+    0 0 30px rgba(236,72,153,.15),
+    0 15px 35px rgba(0,0,0,.25);
+}
+
+/* Icon */
+
+.icon-box{
+  width:58px;
+  height:58px;
+  border-radius:16px;
+
+  background:rgba(255,255,255,.08);
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  backdrop-filter:blur(10px);
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.15);
+}
+
+/* Content */
+
+.card-content{
+  margin-top:18px;
+}
+
+.stream-card h2{
+  margin:0;
+
+  font-size:28px;
+  font-weight:800;
+
+  line-height:1.05;
+}
+
+.education h2{
+  font-size:52px;
+}
+
+.stream-card span{
+  display:block;
+
+  margin-top:10px;
+
+  font-size:14px;
+  font-weight:600;
+
+  opacity:.75;
+}
+
+/* Arrow */
+
+.arrow{
+  position:absolute;
+
+  right:18px;
+  bottom:18px;
+
+  opacity:.6;
+}
+
+/* Decorative Orb */
+
+.stream-card::after{
+  content:"";
+
+  position:absolute;
+
+  width:140px;
+  height:140px;
+
+  border-radius:50%;
+
+  top:-50px;
+  right:-50px;
+
+  background:
+    rgba(255,255,255,.04);
+}
+.stream-card:hover{
+  transform:
+    translateY(-6px)
+    scale(1.02);
+
+  border-color:
+    rgba(255,255,255,.15);
+}

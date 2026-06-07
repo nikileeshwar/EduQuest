@@ -1,4 +1,5 @@
 // src/components/TopBar.jsx
+
 import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { useLang } from "../state/LangContext";
@@ -8,33 +9,32 @@ export default function TopBar() {
   const loc = useLocation();
   const { lang, toggle, t } = useLang();
 
-  // hide TopBar on the front page
+  // Hide TopBar on landing page
   if (loc.pathname === "/") return null;
 
-  const showBack = loc.pathname !== "/";
+  const showBack = true;
 
   function handleBack() {
-    // If we're on a nested lab route like:
-    // /games/lab/<category>/<page>  -> go back to /games/lab/<category>
-    // e.g. /games/lab/physics/circuit  -> /games/lab/physics
-    const parts = loc.pathname.split("/").filter(Boolean); // removes empty strings
-    // parts example: ["games","lab","physics","circuit"]
-    if (parts[0] === "games" && parts[1] === "lab" && parts.length >= 4) {
-      const parentCategory = parts[2];
-      nav(`/games/lab/${parentCategory}`);
+    const path = loc.pathname;
+
+    // If user opened page directly (no history)
+    if (window.history.length <= 2) {
+      if (path.startsWith("/games/lab")) {
+        nav("/games");
+        return;
+      }
+
+      if (path.startsWith("/games")) {
+        nav("/");
+        return;
+      }
+
+      nav("/");
       return;
     }
 
-    // If we're at the top-level lab listing, use existing heuristics
-    if (loc.pathname === "/games/lab" && window.history.length <= 2) {
-      nav("/games");
-      return;
-    }
-    if (window.history.length > 2) {
-      nav(-1);
-    } else {
-      nav("/games");
-    }
+    // Normal navigation
+    nav(-1);
   }
 
   return (
@@ -48,30 +48,56 @@ export default function TopBar() {
         right: 0,
         height: 72,
         zIndex: 2000,
-        background: "rgba(255,255,255,0.50)",
-        backdropFilter: "saturate(120%) blur(6px)",
-        boxShadow: "0 6px 18px rgba(2,6,23,0.08)",
+
+        background: "rgba(255,255,255,.82)",
+
+        backdropFilter: "blur(20px)",
+        WebkitBackdropFilter: "blur(20px)",
+
+        borderBottom:
+          "1px solid rgba(255,255,255,.06)",
+
+        boxShadow:
+          "0 8px 32px rgba(0,0,0,.15)",
+
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
+
         padding: "0 28px",
       }}
     >
-      {/* Left side controls (Back + Home) */}
-      <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
+      {/* Left Section */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 16,
+        }}
+      >
         {showBack && (
           <button
             onClick={handleBack}
             style={{
-              background: "linear-gradient(90deg,#8b5cf6,#a78bfa)",
+              background:
+                "linear-gradient(90deg,#8b5cf6,#a78bfa)",
+
               border: "none",
+
               padding: "10px 18px",
+
               borderRadius: 12,
-              fontWeight: 700,
+
+              fontWeight: 800,
+
               cursor: "pointer",
-              color: "#fff",
+
+              color: "#191919",
+
               fontSize: "0.95rem",
-              boxShadow: "0 6px 14px rgba(0,0,0,0.15)",
+
+              boxShadow:
+                "0 6px 14px rgba(0,0,0,0.15)",
             }}
           >
             {t.back}
@@ -82,11 +108,17 @@ export default function TopBar() {
           onClick={() => nav("/")}
           style={{
             background: "transparent",
+
             border: "none",
+
             fontWeight: 800,
+
             cursor: "pointer",
+
             fontSize: 15,
-            color: "#0f1724",
+
+            color: "#191919",
+
             letterSpacing: "0.5px",
           }}
         >
@@ -94,25 +126,15 @@ export default function TopBar() {
         </button>
       </div>
 
-      {/* Right side controls */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-        {/* Language toggle */}
-        <button
-          onClick={toggle}
-          style={{
-            background: "linear-gradient(90deg,#34d399,#059669)",
-            border: "none",
-            padding: "10px 18px",
-            borderRadius: 12,
-            fontWeight: 700,
-            cursor: "pointer",
-            color: "#fff",
-            fontSize: "0.95rem",
-            boxShadow: "0 6px 14px rgba(0,0,0,0.15)",
-          }}
-        >
-          {lang === "EN" ? "தமிழ்" : "English"}
-        </button>
+      {/* Right Section */}
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          gap: 12,
+        }}
+      >
+        
       </div>
     </header>
   );

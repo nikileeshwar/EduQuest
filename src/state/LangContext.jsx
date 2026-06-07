@@ -230,7 +230,7 @@ const strings = {
           "Fill the 9×9 grid so that each row, column, and 3×3 box contains digits 1 through 9, without repeating any number.",
       },
       arithmetica: {
-        title: "ArithmeticA",
+        title: "Arithmetics",
         subtitle: "Math Practice",
         description:
           "Arithmetica strengthens arithmetic skills through quick problems in addition, subtraction, multiplication and division.",

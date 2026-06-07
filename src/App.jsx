@@ -1,78 +1,87 @@
-// src/App.jsx
 import React, { Suspense, lazy } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 
 import { useLang } from "./state/LangContext";
 import { AuthProvider } from "./state/AuthContext";
-import { ThemeProvider } from "./state/ThemeContext"; // <- added
+import { ThemeProvider } from "./state/ThemeContext";
 
 import TopBar from "./components/TopBar";
 import Particles from "./components/Particles";
 import Confetti from "./components/Confetti";
-import ChooseMode from "./pages/ChooseMode"; // <-- import ChooseMode
-import Front from "./pages/Front";
-import Assessment from "./pages/Assessment";
-import QuizDifficulty from "./pages/QuizDifficulty";
-import GradeList from "./pages/GradeList";
-import Subjects from "./pages/Subjects";
-import ScienceDrill from "./pages/ScienceDrill";
-import StreamSelect from "./pages/StreamSelect";
-import LevelSelect from "./pages/LevelSelect";
-import Quiz from "./pages/Quiz";
-import Result from "./pages/Result";
-import WordSearch from "./pages/WordSearch";
-
-// Games (page components)
-import Games from "./pages/Games";
-import TicTacToe from "./pages/games/TicTacToe";
-import ArithmeticA from "./pages/games/arithmetica";
-import VisualMemory from "./pages/games/visualmemory";
-import LabGames from "./pages/LabGames";
-
-// New game pages you added
-import PuzzleQuest from "./pages/games/puzzlequest";
-import ChessGame from "./pages/games/chess";
-import RiddlesGame from "./pages/games/RiddlesGame"; // <-- added riddles import
-
-// Auth / misc
-import Login from "./pages/Login";
-import Leaderboard from "./pages/Leaderboard";
 import PrivateRoute from "./components/PrivateRoute";
 
-/**
- * Lazy-load experiment components.
- * Keep these as lazy to avoid bundling heavy sims into the main chunk.
- *
- * Expected file locations (update if you renamed):
- *  - src/components/physics/PendulumPro.jsx
- *  - src/components/physics/SpringMass.jsx
- *  - src/components/physics/CircuitLab.jsx
- *
- *  - src/components/chemistry/Titration.jsx
- *  - src/components/chemistry/ReactionKinetics.jsx
- *  - src/components/chemistry/Electrochemistry.jsx
- *
- *  - src/components/biology/CellExplorer.jsx
- *  - src/components/biology/EcosystemSim.jsx
- *  - src/components/biology/GeneticsPlay.jsx
- */
-const PendulumPro = lazy(() => import("./components/physics/PendulumPro"));
-const SpringMass = lazy(() => import("./components/physics/SpringMass"));
-const CircuitLab = lazy(() => import("./components/physics/CircuitLab"));
+// Dashboard
+import Front from "./pages/dashboard/Front.jsx";
+import Login from "./pages/dashboard/Login.jsx";
+import Leaderboard from "./pages/dashboard/Leaderboard.jsx";
+import About from "./pages/dashboard/About.jsx";
 
-const Titration = lazy(() => import("./components/chemistry/Titration"));
-const ReactionKinetics = lazy(() => import("./components/chemistry/ReactionKinetics"));
-const Electrochemistry = lazy(() => import("./components/chemistry/Electrochemistry"));
+// Assessment
 
-const CellExplorer = lazy(() => import("./components/biology/CellExplorer"));
-const EcosystemSim = lazy(() => import("./components/biology/EcosystemSim"));
-const GeneticsPlay = lazy(() => import("./components/biology/GeneticsPlay"));
+import GradeList from "./pages/assessment/GradeList.jsx";
+import QuizPage from "./pages/assessment/QuizPage";
+import Result from "./pages/assessment/Result.jsx";
 
-// Small loading fallback while lazy modules load
+// Games
+import Games from "./pages/games/GameHub.jsx";
+import TicTacToe from "./pages/games/TicTacToe.jsx";
+import ArithmeticA from "./pages/games/Arithmetic.jsx";
+import VisualMemory from "./pages/games/VisualMemory.jsx";
+import PuzzleQuest from "./pages/games/PuzzleQuest.jsx";
+import Sudoku from "./pages/games/Sudoku.jsx";
+import RiddlesGame from "./pages/games/RiddlesGame.jsx";
+import WordSearch from "./pages/games/WordSearch.jsx";
+
+// Lab Home Pages
+import LabGames from "./pages/lab/LabHome.jsx";
+import PhysicsLab from "./pages/lab/physics/PhysicsLab.jsx";
+import ChemistryLab from "./pages/lab/chemistry/ChemistryLab.jsx";
+import BiologyLab from "./pages/lab/biology/BiologyLab.jsx";
+
+// Physics Experiments
+const PendulumPro = lazy(() =>
+  import("./pages/lab/physics/PendulumPro.jsx")
+);
+
+const SpringMass = lazy(() =>
+  import("./pages/lab/physics/SpringMass.jsx")
+);
+
+const ProjectileLab = lazy(() =>
+  import("./pages/lab/physics/CircuitLab.jsx")
+);
+
+// Chemistry Experiments
+const Titration = lazy(() =>
+  import("./pages/lab/chemistry/Titration.jsx")
+);
+
+const ReactionKinetics = lazy(() =>
+  import("./pages/lab/chemistry/ReactionKinetics.jsx")
+);
+
+const Electrochemistry = lazy(() =>
+  import("./pages/lab/chemistry/Electrochemistry.jsx")
+);
+
+// Biology Experiments
+const CellExplorer = lazy(() =>
+  import("./pages/lab/biology/CellExplorer.jsx")
+);
+
+const EcosystemSim = lazy(() =>
+  import("./pages/lab/biology/EcosystemSim.jsx")
+);
+
+const GeneticsPlay = lazy(() =>
+  import("./pages/lab/biology/GeneticsPlay.jsx")
+);
+
+// Loader
 function LoaderFallback() {
   return (
     <div style={{ padding: 28, color: "#fff" }}>
-      <h3>Loading…</h3>
+      <h3>Loading...</h3>
       <p>Please wait while the lab loads.</p>
     </div>
   );
@@ -84,13 +93,18 @@ export default function App() {
 
   const location = useLocation();
 
-  // Show TopBar everywhere except on the login page.
-  // (You requested the top-bar Back control be the primary back button.)
+  // Hide TopBar only on login page
   const hideTopBar = location.pathname === "/login";
 
   return (
     <ThemeProvider>
-      <div className="app-root" style={{ minHeight: "100vh", position: "relative" }}>
+      <div
+        className="app-root"
+        style={{
+          minHeight: "100vh",
+          position: "relative",
+        }}
+      >
         <Particles />
         <Confetti />
 
@@ -99,16 +113,45 @@ export default function App() {
 
           <main style={{ marginTop: hideTopBar ? 0 : 24 }}>
             <Routes>
-              {/* Public */}
+                            {/* Public Routes */}
               <Route path="/login" element={<Login />} />
               <Route path="/leaderboard" element={<Leaderboard />} />
-              <Route path="/assessment/quiz" element={<QuizDifficulty />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/quiz/:category" element={<QuizPage />} />
 
-              {/* Lab hub routes (hub view) */}
+              {/* Lab Hub */}
               <Route path="/games/lab" element={<LabGames />} />
               <Route path="/games/lab/:labId" element={<LabGames />} />
 
-              {/* Protected routes */}
+              {/* Lab Home Pages */}
+              <Route
+                path="/games/lab/physics"
+                element={
+                  <PrivateRoute>
+                    <PhysicsLab />
+                  </PrivateRoute>
+                }
+              />
+
+              <Route
+                path="/games/lab/chemistry"
+                element={
+                  <PrivateRoute>
+                    <ChemistryLab />
+                  </PrivateRoute>
+                }
+              />
+
+              <Route
+                path="/games/lab/biology"
+                element={
+                  <PrivateRoute>
+                    <BiologyLab />
+                  </PrivateRoute>
+                }
+              />
+
+              {/* Protected Routes */}
               <Route
                 path="/"
                 element={
@@ -117,17 +160,7 @@ export default function App() {
                   </PrivateRoute>
                 }
               />
-              <Route
-                path="/assessment"
-                element={
-                  <PrivateRoute>
-                    <Assessment />
-                  </PrivateRoute>
-                }
-              />
 
-              {/* Important: Add a plain /grades route so nav("/grades") works,
-                  and keep the param route for difficulty-specific navigation */}
               <Route
                 path="/grades"
                 element={
@@ -136,76 +169,13 @@ export default function App() {
                   </PrivateRoute>
                 }
               />
-              <Route
-                 path="/choose"
-                 element={
-                   <PrivateRoute>
-                     <ChooseMode />
-                   </PrivateRoute>
-                 }
-               />
-              <Route
-                path="/grades/:difficulty"
-                element={
-                  <PrivateRoute>
-                    <GradeList />
-                  </PrivateRoute>
-                }
-              />
 
-              <Route
-                path="/subjects/:difficulty/:grade"
-                element={
-                  <PrivateRoute>
-                    <Subjects />
-                  </PrivateRoute>
-                }
-              />
-              <Route
-                path="/science-drill/:difficulty/:grade"
-                element={
-                  <PrivateRoute>
-                    <ScienceDrill />
-                  </PrivateRoute>
-                }
-              />
-              <Route
-                path="/stream/:difficulty/:grade"
-                element={
-                  <PrivateRoute>
-                    <StreamSelect />
-                  </PrivateRoute>
-                }
-              />
-              <Route
-                path="/level/:difficulty/:grade/:subject"
-                element={
-                  <PrivateRoute>
-                    <LevelSelect />
-                  </PrivateRoute>
-                }
-              />
-              <Route
-                path="/quiz/:difficulty/:grade/:subject/:level"
-                element={
-                  <PrivateRoute>
-                    <Quiz />
-                  </PrivateRoute>
-                }
-              />
+
               <Route
                 path="/result/:score"
                 element={
                   <PrivateRoute>
                     <Result />
-                  </PrivateRoute>
-                }
-              />
-              <Route
-                path="/wordsearch"
-                element={
-                  <PrivateRoute>
-                    <WordSearch />
                   </PrivateRoute>
                 }
               />
@@ -228,6 +198,7 @@ export default function App() {
                   </PrivateRoute>
                 }
               />
+
               <Route
                 path="/games/arithmetica"
                 element={
@@ -236,6 +207,7 @@ export default function App() {
                   </PrivateRoute>
                 }
               />
+
               <Route
                 path="/games/visualmemory"
                 element={
@@ -245,7 +217,33 @@ export default function App() {
                 }
               />
 
-              {/* Riddles game route (new) */}
+              <Route
+                path="/games/wordsearch"
+                element={
+                  <PrivateRoute>
+                    <WordSearch />
+                  </PrivateRoute>
+                }
+              />
+
+              <Route
+                path="/games/puzzlequest"
+                element={
+                  <PrivateRoute>
+                    <PuzzleQuest />
+                  </PrivateRoute>
+                }
+              />
+
+              <Route
+                path="/games/sudoku"
+                element={
+                  <PrivateRoute>
+                    <Sudoku />
+                  </PrivateRoute>
+                }
+              />
+
               <Route
                 path="/games/riddles"
                 element={
@@ -255,25 +253,7 @@ export default function App() {
                 }
               />
 
-              {/* New game routes (added) */}
-              <Route
-                path="/games/puzzlequest"
-                element={
-                  <PrivateRoute>
-                    <PuzzleQuest />
-                  </PrivateRoute>
-                }
-              />
-              <Route
-                path="/games/chess"
-                element={
-                  <PrivateRoute>
-                    <ChessGame />
-                  </PrivateRoute>
-                }
-              />
-
-              {/* Physics experiments (protected) */}
+              {/* Physics Experiments */}
               <Route
                 path="/games/lab/physics/pendulum"
                 element={
@@ -284,8 +264,9 @@ export default function App() {
                   </PrivateRoute>
                 }
               />
+
               <Route
-                path="/games/lab/physics/spring"
+                path="/games/lab/physics/springmass"
                 element={
                   <PrivateRoute>
                     <Suspense fallback={<LoaderFallback />}>
@@ -294,18 +275,19 @@ export default function App() {
                   </PrivateRoute>
                 }
               />
+
               <Route
-                path="/games/lab/physics/circuit"
+                path="/games/lab/physics/projectile"
                 element={
                   <PrivateRoute>
                     <Suspense fallback={<LoaderFallback />}>
-                      <CircuitLab />
+                      <ProjectileLab />
                     </Suspense>
                   </PrivateRoute>
                 }
               />
 
-              {/* Chemistry experiments (protected) */}
+              {/* Chemistry Experiments */}
               <Route
                 path="/games/lab/chemistry/titration"
                 element={
@@ -316,6 +298,7 @@ export default function App() {
                   </PrivateRoute>
                 }
               />
+
               <Route
                 path="/games/lab/chemistry/kinetics"
                 element={
@@ -326,6 +309,7 @@ export default function App() {
                   </PrivateRoute>
                 }
               />
+
               <Route
                 path="/games/lab/chemistry/electro"
                 element={
@@ -337,7 +321,7 @@ export default function App() {
                 }
               />
 
-              {/* Biology experiments (protected) */}
+              {/* Biology Experiments */}
               <Route
                 path="/games/lab/biology/cell"
                 element={
@@ -348,6 +332,7 @@ export default function App() {
                   </PrivateRoute>
                 }
               />
+
               <Route
                 path="/games/lab/biology/ecosystem"
                 element={
@@ -358,6 +343,7 @@ export default function App() {
                   </PrivateRoute>
                 }
               />
+
               <Route
                 path="/games/lab/biology/genetics"
                 element={
@@ -369,7 +355,7 @@ export default function App() {
                 }
               />
 
-              {/* Fallback / Not found */}
+              {/* 404 */}
               <Route
                 path="*"
                 element={
@@ -378,7 +364,7 @@ export default function App() {
                   </div>
                 }
               />
-            </Routes>
+                          </Routes>
           </main>
         </AuthProvider>
       </div>
