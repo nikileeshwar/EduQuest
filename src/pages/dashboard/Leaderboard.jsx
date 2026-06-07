@@ -1,344 +1,260 @@
-// src/pages/Leaderboard.jsx
-import React, { useEffect, useMemo, useState } from "react";
-import { useAuth } from "../../state/AuthContext";
-import { useLang } from "../../state/LangContext";
-import { getLeaderboard, clearLeaderboard } from "../../state/leaderboard";
-import { useTheme } from "../../state/ThemeContext"; // ✅ added
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import {
+  clearLeaderboard,
+  getLeaderboard,
+  getLeaderboardStats,
+  LEADERBOARD_EVENT,
+} from "../../state/leaderboard";
+import "./Leaderboard.css";
 
-/* ---------------------------- Styling ---------------------------- */
-const baseContainer = {
-  position: "fixed",
-  inset: 0,
-  padding: "90px 22px 22px",
-  color: "#e6eef5",
-  fontFamily:
-    "'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial",
-  overflow: "hidden",
-  display: "flex",
-  flexDirection: "column",
+const PAGE_SIZE = 10;
+const SORT_KEYS = {
+  rank: "rank",
+  score: "score",
+  accuracy: "accuracy",
+  date: "date",
 };
 
-const titleWrap = {
-  textAlign: "center",
-  marginBottom: 20,
-};
-
-const titleStyle = {
-  fontSize: 54,
-  fontWeight: 900,
-  letterSpacing: "-2px",
-  color: "#fff",
-  textShadow: "0 0 40px rgba(124,58,237,.6)",
-};
-
-const layoutRow = {
-  display: "flex",
-  gap: 20,
-  alignItems: "stretch",
-  flex: 1,
-  overflow: "hidden",
-};
-
-const tablePanel = {
-  flex: 1,
-  background: "rgba(10,15,40,0.35)",
-  backdropFilter: "blur(16px)",
-  WebkitBackdropFilter: "blur(16px)",
-  borderRadius: 16,
-  padding: 22,
-  boxShadow: "0 26px 80px rgba(2,6,23,0.65)",
-  border: "1px solid rgba(255,255,255,0.04)",
-  display: "flex",
-  flexDirection: "column",
-  overflow: "hidden",
-};
-
-const tableWrap = {
-  marginTop: 14,
-  flex: 1,
-  overflowY: "auto",
-  borderRadius: 12,
-  border: "1px solid rgba(255,255,255,0.05)",
-  background:
-    "linear-gradient(180deg, rgba(255,255,255,0.015), rgba(255,255,255,0.00))",
-  maxHeight: "calc(100vh - 260px)",
-  padding: 10,
-};
-
-const tableStyle = {
-  width: "100%",
-  borderCollapse: "collapse",
-  minWidth: 1100, // 🔹 even bigger table
-  fontSize: 15,
-};
-
-const th = {
-  textAlign: "left",
-  padding: "14px 18px", // 🔹 bigger padding
-  fontSize: 14,
-  color: "#ffffff",
-  fontWeight: 700,
-  borderBottom: "1px solid rgba(255,255,255,0.04)",
-  userSelect: "none",
-  position: "sticky",
-  top: 0,
-  background: "linear-gradient(180deg, rgba(7,9,12,0.95), rgba(7,9,12,0.95))",
-  zIndex: 2,
-};
-
-const td = {
-  padding: "16px 20px", // 🔹 bigger cells
-  fontSize: 16,
-  fontWeight: 700,
-  color: "#ffffff",
-  borderBottom: "1px solid rgba(255,255,255,0.03)",
-  verticalAlign: "middle",
-};
-
-const smallBtn = {
-  background: "linear-gradient(90deg,#6b21a8,#4c1d95)",
-  color: "#fff",
-  padding: "8px 16px", // 🔹 slightly bigger
-  border: "none",
-  borderRadius: 10,
-  cursor: "pointer",
-  fontWeight: 700,
-  fontSize: 14,
-  boxShadow: "0 4px 12px rgba(0,0,0,0.3)",
-};
-
-const dangerBtn = {
-  ...smallBtn,
-  background: "linear-gradient(90deg,#ef4444,#b91c1c)",
-};
-
-/* ----------------------------- Utility ----------------------------- */
 function fmtDate(iso) {
   try {
-    const d = new Date(iso);
-    return d.toLocaleString();
+    return new Date(iso).toLocaleDateString(undefined, {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
   } catch {
     return iso;
   }
 }
-function groupKey(e) {
-  return `${(e.name || "Anonymous").trim().toLowerCase()}||${
-    (e.school || "").trim()
-  }||${(e.place || "").trim()}`;
-}
 
-/* ---------------------------- Component ---------------------------- */
-export default function LeaderboardPage() {
-  const { user } = useAuth?.() || {};
-  const { t } = useLang?.() || {};
-  const { theme } = useTheme(); // ✅ get current theme
-
-  const LS_KEY = "quiz_leaderboard";
+export default function Leaderboard() {
   const [entries, setEntries] = useState(() => getLeaderboard());
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState("score");
+  const [sortDir, setSortDir] = useState("desc");
+  const [page, setPage] = useState(1);
+
+  const refresh = useCallback(() => setEntries(getLeaderboard()), []);
 
   useEffect(() => {
-    function onStorage(e) {
-      if (e.key === LS_KEY) setEntries(getLeaderboard());
-    }
+    refresh();
+    const onStorage = (e) => {
+      if (e.key === "quiz_leaderboard") refresh();
+    };
     window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-  }, []);
+    window.addEventListener(LEADERBOARD_EVENT, refresh);
+    return () => {
+      window.removeEventListener("storage", onStorage);
+      window.removeEventListener(LEADERBOARD_EVENT, refresh);
+    };
+  }, [refresh]);
 
-  const aggregated = useMemo(() => {
-    const map = new Map();
-    for (const e of entries || []) {
-      const k = groupKey(e);
-      const score = Number(e.score || 0);
-      const date = e.date ? new Date(e.date) : new Date();
-      const ex = map.get(k);
-      if (!ex) {
-        map.set(k, {
-          name: e.name || "Anonymous",
-          school: e.school || "",
-          place: e.place || "",
-          totalScore: score,
-          played: 1,
-          lastDate: date,
-          recentScores: [score],
-        });
-      } else {
-        ex.totalScore += score;
-        ex.played += 1;
-        ex.recentScores.push(score);
-        if (date > ex.lastDate) ex.lastDate = date;
-      }
-    }
+  const stats = useMemo(() => getLeaderboardStats(entries), [entries]);
 
-    const arr = Array.from(map.values()).map((a) => ({
-      ...a,
-      lastDate:
-        a.lastDate instanceof Date
-          ? a.lastDate.toISOString()
-          : String(a.lastDate),
+  const ranked = useMemo(() => {
+    let list = entries.map((e) => ({
+      ...e,
+      accuracy: e.total > 0 ? Math.round((e.score / e.total) * 100) : e.accuracy || 0,
     }));
 
-    arr.sort((a, b) => {
-      const sd = Number(b.totalScore) - Number(a.totalScore);
-      if (sd !== 0) return sd;
-      return new Date(b.lastDate) - new Date(a.lastDate);
+    const q = search.trim().toLowerCase();
+    if (q) {
+      list = list.filter(
+        (e) =>
+          e.name.toLowerCase().includes(q) ||
+          e.school.toLowerCase().includes(q) ||
+          e.place.toLowerCase().includes(q)
+      );
+    }
+
+    list.sort((a, b) => {
+      let cmp = 0;
+      if (sortBy === "score") cmp = a.score - b.score;
+      else if (sortBy === "accuracy") cmp = a.accuracy - b.accuracy;
+      else if (sortBy === "date") cmp = new Date(a.date) - new Date(b.date);
+      else cmp = 0;
+      return sortDir === "desc" ? -cmp : cmp;
     });
 
-    return arr;
-  }, [entries]);
+    return list.map((e, i) => ({ ...e, rank: i + 1 }));
+  }, [entries, search, sortBy, sortDir]);
 
-  const MAX_DISPLAY = 100;
-  const visibleAggregated = aggregated.slice(0, MAX_DISPLAY);
-  const particles = Array.from({ length: 30 });
+  const totalPages = Math.max(1, Math.ceil(ranked.length / PAGE_SIZE));
+  const pageSafe = Math.min(page, totalPages);
+  const pageRows = ranked.slice((pageSafe - 1) * PAGE_SIZE, pageSafe * PAGE_SIZE);
+  const podium = ranked.slice(0, 3);
 
-<div
-  style={{
-    display: "flex",
-    justifyContent: "center",
-    gap: 20,
-    marginBottom: 30,
-  }}
->
-  {visibleAggregated.slice(0, 3).map((user, idx) => (
-    <div
-      key={idx}
-      style={{
-        width: 180,
-        padding: 20,
-        borderRadius: 20,
-        textAlign: "center",
-        background: "rgba(255,255,255,.06)",
-        backdropFilter: "blur(12px)",
-        border: "1px solid rgba(255,255,255,.08)",
-        boxShadow: "0 0 40px rgba(124,58,237,.3)",
-      }}
-    >
-      <div style={{ fontSize: 40 }}>
-        {idx === 0 ? "👑" : idx === 1 ? "🥈" : "🥉"}
-      </div>
+  function toggleSort(key) {
+    if (sortBy === key) setSortDir((d) => (d === "desc" ? "asc" : "desc"));
+    else {
+      setSortBy(key);
+      setSortDir("desc");
+    }
+  }
 
-      <h3>{user.name}</h3>
-
-      <div
-        style={{
-          fontSize: 28,
-          fontWeight: 900,
-          color: "#a855f7",
-        }}
-      >
-        {user.totalScore}
-      </div>
-    </div>
-  ))}
-</div>
   return (
-    
-    <div
-  style={{
-    ...baseContainer,
-    background: `
-      radial-gradient(circle at top center,
-      rgba(125,72,255,.25) 0%,
-      rgba(0,0,0,0) 40%),
-      linear-gradient(
-        135deg,
-        #020617 0%,
-        #030b2b 40%,
-        #050d35 100%
-      )
-    `,
-  }}
->
-      <div style={titleWrap}>
-        <h2 style={titleStyle}>👑 Leaderboard 👑</h2>
-      </div>
+    <div className="lb-page">
+      <div className="lb-glow lb-glow-left" aria-hidden />
+      <div className="lb-glow lb-glow-right" aria-hidden />
 
-      <div style={layoutRow}>
-        <div style={tablePanel}>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
-            }}
-          >
-            <div style={{ fontWeight: 700, fontSize: 18, color: "#fff" }}>
-              Students ranked by their Quiz performance, showcasing scores and
-              positions
-            </div>
+      <div className="lb-shell">
+        <header className="lb-header">
+          <div>
+            <p className="lb-eyebrow">EduQuest Analytics</p>
+            <h1>Leaderboard</h1>
+            <p className="lb-subtitle">Quiz performance rankings — updated after every completed quiz.</p>
+          </div>
+          <div className="lb-header-actions">
+            <button type="button" className="lb-btn lb-btn-ghost" onClick={refresh}>
+              Refresh
+            </button>
+            <button
+              type="button"
+              className="lb-btn lb-btn-danger"
+              onClick={() => {
+                if (window.confirm("Clear all leaderboard entries? This cannot be undone.")) {
+                  clearLeaderboard();
+                  setEntries([]);
+                  setPage(1);
+                }
+              }}
+            >
+              Clear
+            </button>
+          </div>
+        </header>
 
-            <div style={{ display: "flex", gap: 10 }}>
-              <button
-                style={smallBtn}
-                onClick={() => setEntries(getLeaderboard())}
-              >
-                Refresh
-              </button>
-              <button
-                style={dangerBtn}
-                onClick={() => {
-                  if (
-                    window.confirm(
-                      "Clear all leaderboard entries? This cannot be undone."
-                    )
-                  ) {
-                    clearLeaderboard();
-                    setEntries([]);
-                  }
-                }}
-              >
-                Clear
-              </button>
+        <section className="lb-stats-row">
+          <div className="lb-stat-card">
+            <span className="lb-stat-label">Total Players</span>
+            <strong className="lb-stat-value">{stats.totalPlayers}</strong>
+          </div>
+          <div className="lb-stat-card">
+            <span className="lb-stat-label">Average Score</span>
+            <strong className="lb-stat-value">{stats.averageScore}</strong>
+          </div>
+          <div className="lb-stat-card">
+            <span className="lb-stat-label">Highest Score</span>
+            <strong className="lb-stat-value">{stats.highestScore}</strong>
+          </div>
+          <div className="lb-stat-card">
+            <span className="lb-stat-label">Total Attempts</span>
+            <strong className="lb-stat-value">{stats.totalEntries}</strong>
+          </div>
+        </section>
+
+        {podium.length > 0 && (
+          <section className="lb-podium">
+            {[1, 0, 2].map((idx) => {
+              const player = podium[idx];
+              if (!player) return <div key={idx} className="lb-podium-slot empty" />;
+              const medal = player.rank === 1 ? "🥇" : player.rank === 2 ? "🥈" : "🥉";
+              return (
+                <div key={player.rank} className={`lb-podium-slot place-${player.rank}`}>
+                  <span className="lb-podium-medal">{medal}</span>
+                  <span className="lb-podium-name">{player.name}</span>
+                  <strong className="lb-podium-score">{player.score}</strong>
+                  <span className="lb-podium-acc">{player.accuracy}% accuracy</span>
+                </div>
+              );
+            })}
+          </section>
+        )}
+
+        <section className="lb-table-section">
+          <div className="lb-toolbar">
+            <input
+              type="search"
+              className="lb-search"
+              placeholder="Search players…"
+              value={search}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setPage(1);
+              }}
+            />
+            <div className="lb-sort-group">
+              {Object.entries(SORT_KEYS).map(([label, key]) => (
+                <button
+                  key={key}
+                  type="button"
+                  className={`lb-sort-btn${sortBy === key ? " active" : ""}`}
+                  onClick={() => toggleSort(key)}
+                >
+                  {label.charAt(0).toUpperCase() + label.slice(1)}
+                  {sortBy === key && (sortDir === "desc" ? " ↓" : " ↑")}
+                </button>
+              ))}
             </div>
           </div>
 
-          <div style={tableWrap}>
-            <table style={tableStyle}>
-              <colgroup>
-                <col style={{ width: "8%" }} /> {/* S.No */}
-                <col style={{ width: "20%" }} /> {/* Name */}
-                <col style={{ width: "25%" }} /> {/* School */}
-                <col style={{ width: "15%" }} /> {/* Place */}
-                <col style={{ width: "10%" }} /> {/* Score */}
-                <col style={{ width: "10%" }} /> {/* Plays */}
-                <col style={{ width: "22%" }} /> {/* Date & Time */}
-              </colgroup>
-              <thead>
-                <tr>
-                  <th style={th}>S.No</th>
-                  <th style={th}>Name</th>
-                  <th style={th}>School</th>
-                  <th style={th}>Place</th>
-                  <th style={{ ...th, textAlign: "center" }}>Score</th>
-                  <th style={{ ...th, textAlign: "center" }}>Plays</th>
-                  <th style={th}>Date & Time</th>
-                </tr>
-              </thead>
-              <tbody>
-                {visibleAggregated.length === 0 ? (
+          <div className="lb-table-wrap">
+            {pageRows.length === 0 ? (
+              <div className="lb-empty">
+                <span className="lb-empty-icon">📊</span>
+                <h3>No scores yet</h3>
+                <p>Complete a quiz to appear on the leaderboard.</p>
+              </div>
+            ) : (
+              <table className="lb-table">
+                <thead>
                   <tr>
-                    <td style={td} colSpan={6}>
-                      No scores yet
-                    </td>
+                    <th>Rank</th>
+                    <th>Player</th>
+                    <th>Score</th>
+                    <th>Accuracy</th>
+                    <th>Date</th>
                   </tr>
-                ) : (
-                  visibleAggregated.map((r, i) => (
-                    <tr key={i}>
-                      <td style={{ ...td, textAlign: "center" }}>{i + 1}</td>
-                      <td style={td}>{r.name}</td>
-                      <td style={td}>{r.school || "—"}</td>
-                      <td style={td}>{r.place || "—"}</td>
-                      <td style={{ ...td, textAlign: "center" }}>
-                        <strong>{r.totalScore}</strong>
+                </thead>
+                <tbody>
+                  {pageRows.map((row) => (
+                    <tr key={`${row.name}-${row.date}-${row.score}`}>
+                      <td>
+                        <span className={`lb-rank-badge${row.rank <= 3 ? " top" : ""}`}>#{row.rank}</span>
                       </td>
-                      <td style={{ ...td, textAlign: "center" }}>{r.played}</td>
-                      <td style={td}>{fmtDate(r.lastDate)}</td>
+                      <td>
+                        <div className="lb-player-cell">
+                          <strong>{row.name}</strong>
+                          {(row.school || row.place) && (
+                            <span className="lb-player-meta">
+                              {[row.school, row.place].filter(Boolean).join(" · ")}
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td>
+                        <strong className="lb-score">{row.score}</strong>
+                        {row.total > 0 && <span className="lb-score-meta"> / {row.total}</span>}
+                      </td>
+                      <td>
+                        <span className={`lb-acc-pill${row.accuracy >= 80 ? " high" : row.accuracy >= 50 ? " mid" : " low"}`}>
+                          {row.accuracy}%
+                        </span>
+                      </td>
+                      <td className="lb-date">{fmtDate(row.date)}</td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ))}
+                </tbody>
+              </table>
+            )}
           </div>
-        </div>
+
+          {ranked.length > PAGE_SIZE && (
+            <div className="lb-pagination">
+              <button type="button" className="lb-btn lb-btn-ghost" disabled={pageSafe <= 1} onClick={() => setPage((p) => p - 1)}>
+                Previous
+              </button>
+              <span className="lb-page-info">
+                Page {pageSafe} of {totalPages}
+              </span>
+              <button type="button" className="lb-btn lb-btn-ghost" disabled={pageSafe >= totalPages} onClick={() => setPage((p) => p + 1)}>
+                Next
+              </button>
+            </div>
+          )}
+        </section>
       </div>
     </div>
   );

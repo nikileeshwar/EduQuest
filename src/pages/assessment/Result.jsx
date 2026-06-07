@@ -33,7 +33,9 @@ export default function Result() {
       name: user?.name || "Anonymous",
       school: user?.school || "",
       place: user?.place || "",
+      category,
       score,
+      total,
       date: new Date().toISOString(),
     });
 

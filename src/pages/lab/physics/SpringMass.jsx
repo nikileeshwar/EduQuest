@@ -1,6 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Pause, Play, RotateCcw, StepForward } from "lucide-react";
-import "./PhysicsLab.css";
+import LabExperimentLayout, {
+  LabButton,
+  LabControl,
+  LabMetric,
+} from "../../../components/lab/LabExperimentLayout.jsx";
 
 const MAX_HISTORY = 1600;
 
@@ -29,9 +33,11 @@ export default function SpringMass() {
   const lastHistory = history.length ? history[history.length - 1] : null;
 
   function energy(x, v) {
-    const kinetic = 0.5 * mass * v * v;
-    const potential = 0.5 * springK * x * x;
-    return { kinetic, potential, total: kinetic + potential };
+    return {
+      kinetic: 0.5 * mass * v * v,
+      potential: 0.5 * springK * x * x,
+      total: 0.5 * mass * v * v + 0.5 * springK * x * x,
+    };
   }
 
   function derivs(state, t) {
@@ -50,7 +56,6 @@ export default function SpringMass() {
     const k3 = derivs(s3, t + 0.5 * h);
     const s4 = { x: state.x + h * k3.xdot, v: state.v + h * k3.vdot };
     const k4 = derivs(s4, t + h);
-
     return {
       x: state.x + (h / 6) * (k1.xdot + 2 * k2.xdot + 2 * k3.xdot + k4.xdot),
       v: state.v + (h / 6) * (k1.vdot + 2 * k2.vdot + 2 * k3.vdot + k4.vdot),
@@ -63,168 +68,117 @@ export default function SpringMass() {
     draw();
   }
 
-  function toggleRun() {
-    setRunning((value) => {
-      const next = !value;
-      if (next) lastRAFTime.current = null;
-      return next;
-    });
-  }
-
-  function resetSim() {
-    setRunning(false);
-    reset();
-  }
-
-  function stepSim() {
-    setRunning(false);
-    const cur = stateRef.current;
-    const next = rk4Step({ x: cur.x, v: cur.v }, cur.t, dt);
-    stateRef.current = { t: cur.t + dt, x: next.x, v: next.v };
-    pushHistory();
-    draw();
-  }
-
   function pushHistory() {
     setHistory((prev) => {
-      const state = stateRef.current;
-      const next = prev.concat({ ...state, ...energy(state.x, state.v) });
+      const s = stateRef.current;
+      const next = prev.concat({ ...s, ...energy(s.x, s.v) });
       if (next.length > MAX_HISTORY) next.shift();
       return next;
     });
   }
 
-  function draw() {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-
-    const ctx = canvas.getContext("2d");
-    const width = canvas.width;
-    const height = canvas.height;
-    const state = stateRef.current;
-
-    ctx.fillStyle = "#06101d";
-    ctx.fillRect(0, 0, width, height);
-
-    const floorY = height * 0.68;
-    const wallX = width * 0.09;
-    const equilibriumX = width * 0.45;
-    const pxPerMeter = Math.max(110, Math.min(230, width * 0.18));
-    const massX = equilibriumX + state.x * pxPerMeter;
-    const massW = 94;
-    const massH = 70;
-    const massY = floorY - massH;
-
-    ctx.strokeStyle = "rgba(255,255,255,0.08)";
-    ctx.lineWidth = 1;
-    for (let x = wallX; x < width - 28; x += 40) {
-      ctx.beginPath();
-      ctx.moveTo(x, floorY);
-      ctx.lineTo(x + 22, floorY + 22);
-      ctx.stroke();
-    }
-
-    ctx.fillStyle = "rgba(255,255,255,0.08)";
-    ctx.fillRect(wallX - 15, height * 0.18, 18, floorY - height * 0.18);
-
-    drawSpring(ctx, wallX + 3, massX - massW / 2, massY + massH / 2, 15, 13);
-
-    ctx.setLineDash([6, 8]);
-    ctx.strokeStyle = "rgba(103,232,249,0.25)";
-    ctx.beginPath();
-    ctx.moveTo(equilibriumX, height * 0.18);
-    ctx.lineTo(equilibriumX, floorY + 30);
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    ctx.shadowColor = "rgba(0,0,0,0.45)";
-    ctx.shadowBlur = 18;
-    ctx.fillStyle = "#f59e0b";
-    roundRect(ctx, massX - massW / 2, massY, massW, massH, 8);
-    ctx.fill();
-    ctx.shadowBlur = 0;
-
-    ctx.fillStyle = "#101827";
-    ctx.font = "700 15px Inter, system-ui, sans-serif";
-    ctx.fillText(`${mass.toFixed(1)} kg`, massX - 22, massY + 42);
-
-    drawPlot(ctx, width * 0.62, height * 0.16, width * 0.31, height * 0.32, "x(t)", "#67e8f9", (point) => point.x);
-    drawPlot(ctx, width * 0.62, height * 0.54, width * 0.31, height * 0.25, "Energy", "#fb7185", (point) => point.total);
-  }
-
   function drawSpring(ctx, x0, x1, y, coils, amp) {
     const length = Math.max(40, x1 - x0);
     const turns = Math.max(8, Math.floor((coils * length) / 170));
-
     ctx.beginPath();
     ctx.moveTo(x0, y);
     for (let i = 1; i <= turns; i += 1) {
       const t = i / turns;
       const x = x0 + t * (x1 - x0);
-      const springY = y + Math.sin(t * Math.PI * coils) * amp;
-      ctx.lineTo(x, springY);
+      ctx.lineTo(x, y + Math.sin(t * Math.PI * coils) * amp);
     }
     ctx.strokeStyle = "#67e8f9";
-    ctx.lineWidth = 4;
+    ctx.lineWidth = 3;
     ctx.stroke();
   }
 
-  function drawPlot(ctx, x, y, width, height, label, color, pickValue) {
-    ctx.fillStyle = "rgba(255,255,255,0.045)";
-    roundRect(ctx, x, y, width, height, 8);
-    ctx.fill();
-
-    ctx.fillStyle = "rgba(238,247,255,0.72)";
-    ctx.font = "800 12px Inter, system-ui, sans-serif";
-    ctx.fillText(label, x + 12, y + 20);
-
-    const points = history.slice(-120);
-    if (points.length < 2) return;
-
-    const values = points.map(pickValue);
-    const maxAbs = Math.max(...values.map((value) => Math.abs(value)), 0.001);
-
+  function roundRect(ctx, x, y, w, h, r) {
     ctx.beginPath();
-    points.forEach((point, index) => {
-      const px = x + 10 + (index / (points.length - 1)) * (width - 20);
-      const py = y + height / 2 - (pickValue(point) / maxAbs) * (height * 0.36);
-      if (index === 0) ctx.moveTo(px, py);
-      else ctx.lineTo(px, py);
-    });
-    ctx.strokeStyle = color;
-    ctx.lineWidth = 2.5;
-    ctx.stroke();
-  }
-
-  function roundRect(ctx, x, y, width, height, radius) {
-    ctx.beginPath();
-    ctx.moveTo(x + radius, y);
-    ctx.arcTo(x + width, y, x + width, y + height, radius);
-    ctx.arcTo(x + width, y + height, x, y + height, radius);
-    ctx.arcTo(x, y + height, x, y, radius);
-    ctx.arcTo(x, y, x + width, y, radius);
+    ctx.moveTo(x + r, y);
+    ctx.arcTo(x + w, y, x + w, y + h, r);
+    ctx.arcTo(x + w, y + h, x, y + h, r);
+    ctx.arcTo(x, y + h, x, y, r);
+    ctx.arcTo(x, y, x + w, y, r);
     ctx.closePath();
   }
 
-  useEffect(() => {
-    reset(initialX, initialV);
-  }, []);
+  function drawPlot(ctx, x, y, w, h, label, color, pick) {
+    ctx.fillStyle = "rgba(255,255,255,0.04)";
+    roundRect(ctx, x, y, w, h, 6);
+    ctx.fill();
+    ctx.fillStyle = "rgba(238,247,255,0.7)";
+    ctx.font = "700 11px Inter, sans-serif";
+    ctx.fillText(label, x + 8, y + 16);
+    const points = history.slice(-100);
+    if (points.length < 2) return;
+    const values = points.map(pick);
+    const maxAbs = Math.max(...values.map(Math.abs), 0.001);
+    ctx.beginPath();
+    points.forEach((pt, i) => {
+      const px = x + 8 + (i / (points.length - 1)) * (w - 16);
+      const py = y + h / 2 - (pick(pt) / maxAbs) * (h * 0.35);
+      if (i === 0) ctx.moveTo(px, py);
+      else ctx.lineTo(px, py);
+    });
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.stroke();
+  }
 
-  useEffect(() => {
-    if (!running) reset(initialX, initialV);
-  }, [initialX, initialV]);
+  function draw() {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    const { width, height } = canvas;
+    const state = stateRef.current;
+
+    ctx.fillStyle = "#06101d";
+    ctx.fillRect(0, 0, width, height);
+
+    const floorY = height * 0.72;
+    const wallX = width * 0.08;
+    const eqX = width * 0.42;
+    const pxPerM = Math.max(80, Math.min(180, width * 0.16));
+    const massX = eqX + state.x * pxPerM;
+    const massW = 72;
+    const massH = 54;
+    const massY = floorY - massH;
+
+    ctx.fillStyle = "rgba(255,255,255,0.08)";
+    ctx.fillRect(wallX - 12, height * 0.15, 14, floorY - height * 0.15);
+    drawSpring(ctx, wallX + 2, massX - massW / 2, massY + massH / 2, 14, 10);
+
+    ctx.setLineDash([5, 6]);
+    ctx.strokeStyle = "rgba(103,232,249,0.3)";
+    ctx.beginPath();
+    ctx.moveTo(eqX, height * 0.12);
+    ctx.lineTo(eqX, floorY);
+    ctx.stroke();
+    ctx.setLineDash([]);
+
+    ctx.fillStyle = "#f59e0b";
+    roundRect(ctx, massX - massW / 2, massY, massW, massH, 6);
+    ctx.fill();
+    ctx.fillStyle = "#101827";
+    ctx.font = "700 13px Inter, sans-serif";
+    ctx.fillText(`${mass.toFixed(1)} kg`, massX - 18, massY + 34);
+
+    drawPlot(ctx, width * 0.58, height * 0.12, width * 0.36, height * 0.28, "x(t)", "#67e8f9", (p) => p.x);
+    drawPlot(ctx, width * 0.58, height * 0.48, width * 0.36, height * 0.22, "E(t)", "#fb7185", (p) => p.total);
+  }
+
+  useEffect(() => { reset(initialX, initialV); }, []);
+  useEffect(() => { if (!running) reset(initialX, initialV); }, [initialX, initialV]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return undefined;
-
     function resize() {
-      const parent = canvas.parentElement;
-      canvas.width = Math.floor(parent.clientWidth);
-      canvas.height = Math.floor(parent.clientHeight);
+      const p = canvas.parentElement;
+      canvas.width = Math.floor(p.clientWidth);
+      canvas.height = Math.floor(p.clientHeight);
       draw();
     }
-
     resize();
     window.addEventListener("resize", resize);
     return () => window.removeEventListener("resize", resize);
@@ -235,7 +189,6 @@ export default function SpringMass() {
       if (!lastRAFTime.current) lastRAFTime.current = now;
       const elapsed = now - lastRAFTime.current;
       lastRAFTime.current = now;
-
       if (running) {
         let remaining = Math.min((elapsed / 1000) * timeScale, 0.25);
         while (remaining > 1e-9) {
@@ -247,128 +200,68 @@ export default function SpringMass() {
         }
         pushHistory();
       }
-
       draw();
       rafRef.current = requestAnimationFrame(loop);
     }
-
     rafRef.current = requestAnimationFrame(loop);
     return () => cancelAnimationFrame(rafRef.current);
   }, [running, dt, timeScale, driveAmp, driveFreq, damping, mass, springK]);
 
   return (
-    <div className="physics-sim-page compact-sim">
-      <div className="physics-sim-shell">
-        <header className="physics-sim-header">
-          <div>
-            <p className="physics-eyebrow">Oscillation Lab</p>
-            <h1>Spring Mass</h1>
-            <p>
-              Explore Hooke's law, damping, and resonance by changing the mass,
-              spring stiffness, and external driving force.
-            </p>
-          </div>
-
-          <div className="physics-action-row">
-            <button className="physics-button primary" onClick={toggleRun}>
-              {running ? <Pause size={16} /> : <Play size={16} />}
-              {running ? "Pause" : "Run"}
-            </button>
-            <button className="physics-button" onClick={stepSim}>
-              <StepForward size={16} />
-              Step
-            </button>
-            <button className="physics-button warning" onClick={resetSim}>
-              <RotateCcw size={16} />
-              Reset
-            </button>
-          </div>
-        </header>
-
-        <div className="physics-layout sim-layout">
-          <main className="physics-panel physics-panel-pad physics-board">
-            <div className="physics-board-header">
-              <div>
-                <h2>Oscillator View</h2>
-                <span>x = {current.x.toFixed(3)} m</span>
-              </div>
-            </div>
-
-            <div className="physics-canvas-wrap">
-              <canvas ref={canvasRef} />
-            </div>
-
-            <div className="physics-controls-grid">
-              <Control label="Mass" suffix="kg" value={mass} set={setMass} min={0.1} max={8} step={0.01} />
-              <Control label="Spring k" suffix="N/m" value={springK} set={setSpringK} min={1} max={200} step={0.1} />
-              <Control label="Damping" value={damping} set={setDamping} min={0} max={6} step={0.01} />
-              <Control label="Initial x" suffix="m" value={initialX} set={setInitialX} min={-1.5} max={1.5} step={0.01} />
-              <Control label="Initial v" suffix="m/s" value={initialV} set={setInitialV} min={-6} max={6} step={0.01} />
-              <Control label="Drive force" suffix="N" value={driveAmp} set={setDriveAmp} min={0} max={20} step={0.1} />
-              <Control label="Drive freq" suffix="rad/s" value={driveFreq} set={setDriveFreq} min={0.2} max={10} step={0.01} />
-              <Control label="Time step" value={dt} set={setDt} min={0.002} max={0.04} step={0.001} />
-              <Control label="Time scale" suffix="x" value={timeScale} set={setTimeScale} min={0.1} max={3} step={0.05} />
-            </div>
-          </main>
-
-          <aside className="physics-panel physics-panel-pad">
-            <div className="physics-panel-title">
-              <h2>Measurements</h2>
-              <span>{running ? "live" : "paused"}</span>
-            </div>
-
-            <div className="physics-metric-list">
-              <Metric label="Displacement" value={`${current.x.toFixed(3)} m`} />
-              <Metric label="Velocity" value={`${current.v.toFixed(3)} m/s`} />
-              <Metric label="Natural omega" value={`${omega0.toFixed(3)} rad/s`} />
-              <Metric label="Natural freq" value={`${frequency.toFixed(3)} Hz`} />
-              <Metric label="Damping ratio" value={dampingRatio.toFixed(3)} />
-              <Metric label="Kinetic energy" value={`${lastHistory ? lastHistory.kinetic.toFixed(3) : "0.000"} J`} />
-              <Metric label="Potential energy" value={`${lastHistory ? lastHistory.potential.toFixed(3) : "0.000"} J`} />
-              <Metric label="Total energy" value={`${lastHistory ? lastHistory.total.toFixed(3) : "0.000"} J`} />
-            </div>
-
-            <div className="physics-history">
-              {history.slice(-12).reverse().map((item) => (
-                <div className="physics-history-row" key={`${item.t}-${item.x}`}>
-                  <span>t {item.t.toFixed(2)}s</span>
-                  <strong>x {item.x.toFixed(3)}</strong>
-                </div>
-              ))}
-            </div>
-          </aside>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function Control({ label, value, set, min, max, step, suffix = "" }) {
-  return (
-    <div className="physics-control">
-      <label>
-        <span>{label}</span>
-        <span>
-          {value.toFixed(2)} {suffix}
-        </span>
-      </label>
-      <input
-        type="range"
-        min={min}
-        max={max}
-        step={step}
-        value={value}
-        onChange={(event) => set(Number(event.target.value))}
-      />
-    </div>
-  );
-}
-
-function Metric({ label, value }) {
-  return (
-    <div className="physics-metric">
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
+    <LabExperimentLayout
+      subject="physics"
+      eyebrow="Mechanics Lab"
+      title="Spring–Mass Oscillator"
+      objective="Explore Hooke's law, damping, and resonance by adjusting spring stiffness, mass, and driving force."
+      actions={
+        <>
+          <LabButton variant="primary" onClick={() => { setRunning((r) => { if (!r) lastRAFTime.current = null; return !r; }); }}>
+            {running ? <Pause size={14} /> : <Play size={14} />}
+            {running ? "Pause" : "Run"}
+          </LabButton>
+          <LabButton onClick={() => {
+            setRunning(false);
+            const cur = stateRef.current;
+            const next = rk4Step({ x: cur.x, v: cur.v }, cur.t, dt);
+            stateRef.current = { t: cur.t + dt, x: next.x, v: next.v };
+            pushHistory();
+            draw();
+          }}>
+            <StepForward size={14} /> Step
+          </LabButton>
+          <LabButton variant="warning" onClick={() => { setRunning(false); reset(); }}>
+            <RotateCcw size={14} /> Reset
+          </LabButton>
+        </>
+      }
+      simulation={<canvas ref={canvasRef} style={{ width: "100%", height: "100%" }} />}
+      controls={
+        <>
+          <LabControl label="Mass" value={mass} onChange={setMass} min={0.1} max={8} step={0.01} suffix="kg" />
+          <LabControl label="Spring k" value={springK} onChange={setSpringK} min={1} max={200} step={0.1} suffix="N/m" />
+          <LabControl label="Damping" value={damping} onChange={setDamping} min={0} max={6} step={0.01} />
+          <LabControl label="Initial x" value={initialX} onChange={setInitialX} min={-1.5} max={1.5} step={0.01} suffix="m" />
+          <LabControl label="Drive force" value={driveAmp} onChange={setDriveAmp} min={0} max={20} step={0.1} suffix="N" />
+          <LabControl label="Drive freq" value={driveFreq} onChange={setDriveFreq} min={0.2} max={10} step={0.01} suffix="rad/s" />
+        </>
+      }
+      observations={
+        <>
+          <LabMetric label="Displacement x" value={`${current.x.toFixed(3)} m`} />
+          <LabMetric label="Velocity v" value={`${current.v.toFixed(3)} m/s`} />
+          <LabMetric label="Natural ω₀" value={`${omega0.toFixed(3)} rad/s`} />
+          <LabMetric label="Frequency f" value={`${frequency.toFixed(3)} Hz`} />
+        </>
+      }
+      results={
+        <>
+          <LabMetric label="Damping ratio ζ" value={dampingRatio.toFixed(3)} highlight />
+          <LabMetric label="Kinetic energy" value={`${lastHistory ? lastHistory.kinetic.toFixed(3) : "0.000"} J`} />
+          <LabMetric label="Potential energy" value={`${lastHistory ? lastHistory.potential.toFixed(3) : "0.000"} J`} />
+          <LabMetric label="Total energy" value={`${lastHistory ? lastHistory.total.toFixed(3) : "0.000"} J`} />
+        </>
+      }
+      note="When drive frequency matches natural frequency, resonance amplifies amplitude. Under-damped systems (ζ &lt; 1) oscillate with decay."
+    />
   );
 }

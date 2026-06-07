@@ -8,7 +8,7 @@ export default function PhysicsLab() {
       title: "Circuit Studio",
       subtitle: "Electric circuits and breadboard design",
       topics: ["Voltage", "Current", "Resistance"],
-      route: "/games/lab/physics/projectile",
+      route: "/games/lab/physics/circuit",
       accent: "#14b8a6",
       icon: CircuitBoard,
     },

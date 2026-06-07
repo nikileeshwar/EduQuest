@@ -47,8 +47,8 @@ const SpringMass = lazy(() =>
   import("./pages/lab/physics/SpringMass.jsx")
 );
 
-const ProjectileLab = lazy(() =>
-  import("./pages/lab/physics/CircuitLab.jsx")
+const CircuitStudio = lazy(() =>
+  import("./pages/lab/physics/CircuitStudio.jsx")
 );
 
 // Chemistry Experiments
@@ -73,8 +73,8 @@ const EcosystemSim = lazy(() =>
   import("./pages/lab/biology/EcosystemSim.jsx")
 );
 
-const GeneticsPlay = lazy(() =>
-  import("./pages/lab/biology/GeneticsPlay.jsx")
+const HumanBodyExplorer = lazy(() =>
+  import("./pages/lab/biology/HumanBodyExplorer.jsx")
 );
 
 // Loader
@@ -277,11 +277,11 @@ export default function App() {
               />
 
               <Route
-                path="/games/lab/physics/projectile"
+                path="/games/lab/physics/circuit"
                 element={
                   <PrivateRoute>
                     <Suspense fallback={<LoaderFallback />}>
-                      <ProjectileLab />
+                      <CircuitStudio />
                     </Suspense>
                   </PrivateRoute>
                 }
@@ -334,7 +334,7 @@ export default function App() {
               />
 
               <Route
-                path="/games/lab/biology/ecosystem"
+                path="/games/lab/biology/foodchain"
                 element={
                   <PrivateRoute>
                     <Suspense fallback={<LoaderFallback />}>
@@ -345,11 +345,11 @@ export default function App() {
               />
 
               <Route
-                path="/games/lab/biology/genetics"
+                path="/games/lab/biology/humanbody"
                 element={
                   <PrivateRoute>
                     <Suspense fallback={<LoaderFallback />}>
-                      <GeneticsPlay />
+                      <HumanBodyExplorer />
                     </Suspense>
                   </PrivateRoute>
                 }
